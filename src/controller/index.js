@@ -4,6 +4,8 @@ const {response, errResponse} = require("../../config/response");
 const baseResponse = require("../../config/baseResponseDict");
 const logger = require('loglevel');
 const indexDao = require("../DAO");
+const fs = require('fs');
+const ytdl = require('ytdl-core');
 
 
 
@@ -17,7 +19,7 @@ exports.indexTest = async function (req, res, next) {
         const result = await indexDao.indexTestQuery(connection);
         // connection을 썻으면 반드시 release를 해줘야한다. => 계속 connection 연결 시 중복 + Err
         connection.release();
-        
+
         return res.send(response(baseResponse.SUCCESS("성공 메세지를 입력하세요"),result));
 
 
@@ -28,4 +30,24 @@ exports.indexTest = async function (req, res, next) {
         return res.send(errResponse(baseResponse.FAIL))
     }
 
+}
+
+exports.youtubeVideo = async function(req,res){
+    try{
+/*        ytdl.chooseFormat('ffmpeg', { quality: '137' });
+        ytdl('https://www.youtube.com/watch?v=8x43gsnkBH8')
+            .pipe(fs.createWriteStream('video.mp4'));*/
+        let url = "https://www.youtube.com/watch?v=8x43gsnkBH8" // 안무영상 유튜브 링크
+
+        const video = ytdl(url, {
+            filter: function (format) {
+                return format.quality === "highest";
+            },
+        });
+        return res.send(response(baseResponse.SUCCESS("완료되었습니다.")));
+
+    }catch (err){
+        logger.warn("응답 실패" + err)
+        return res.send(errResponse(baseResponse.FAIL))
+    }
 }
