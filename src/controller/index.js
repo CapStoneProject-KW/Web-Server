@@ -8,6 +8,8 @@ const fs = require("fs");
 const ytdl = require("ytdl-core");
 const request = require("request");
 
+let flag = false
+
 exports.indexTest = async function (req, res, next) {
   try {
     // pool에서 getConnection 의 뜻과 사용 용도를 아직 모름 -> 알아봐야할 듯
@@ -30,18 +32,82 @@ exports.indexTest = async function (req, res, next) {
 };
 
 exports.youtubeVideo = async function (req, res) {
-  try {
-    /*        ytdl.chooseFormat('ffmpeg', { quality: '137' });
-        ytdl('https://www.youtube.com/watch?v=8x43gsnkBH8')
-            .pipe(fs.createWriteStream('video.mp4'));*/
-    let url = "https://www.youtube.com/watch?v=8x43gsnkBH8"; // 안무영상 유튜브 링크
 
-    const video = ytdl(url, {
-      filter: function (format) {
-        return format.quality === "highest";
-      },
-    });
+  const url = req.body.url
+
+  /** 난수생성과 유튜브링크 뒤 ID를 조합해서 섞이지 않는 PK 생성 **/
+  const PK = url.split('=')[1] +  Math.random().toString().split('.')[1]
+
+  /** 영상이 ytdl을 통해 저장될 폴더 위치 **/
+  const dir = 'Users\\samsung_\\WebstormProjects\\LastDance-Web\\video'
+
+  /** 영상 파일의 최종 위치, 해당 위치를 인자로 넘겨주어 접근하면 됨 **/
+  const path = '/' + dir + '/' +'middlevideo'+PK+'.mp4'
+
+  try {
+
+    /** 입력받은 url을 통해 비동기로 다운로드
+
+     *  1080p = 약 15초 이하
+     *  360p(default) = 약 1초 이하
+     *  lowestvideo = open 불가 (별도 코덱 필요)
+
+     **/
+
+/*
+    /!** 기본 값(default) == 640 * 360  **!/
+    ytdl(url)
+        .pipe(fs.createWriteStream(path))
+*/
+
+    /** {quality Option = 'highestvideo' or 'lowestvideo' } **/
+
+    ytdl(url, { quality: 'highestvideo' })
+        .on('end', () => {
+          console.log('end')
+          flag = true;
+          /** == 비동기로 비디오를 AI서버로 보낸다면, 여기 API는 res.send로 이미 return 한 상황 ==
+           * 비디오를 다운완료하면 바로 AI서버로 보내도 상관없나? 후에 있을 영상처리과정에서는 return을 어디에 해주지?
+           *
+           1) /index/video API에서는 마지막에 res.render로 다음화면 처리
+           * **/
+
+          let options = {
+            uri: "AI server 주소",
+            method: 'POST',
+            body: {
+              filepath: path
+            },
+          }
+
+          request(options,function(err,response,body){
+            if(response.SUCCESS !== true){
+              alert("조졌는데요?")
+            }
+
+            /**                       --- 내용 ---
+                         Q) 영상 동시 Detection 혹은 먼저 오는 순서대로 ?
+             동시 => 그냥 비동기로 영상 받고 끝 (어차피 영상 녹화되는 시간 안에 다운받아짐 아마)
+             각각 => 응답 결과를 어디에 저장했다가 녹화까지 끝나고 한꺼번에 다른 API로 전송
+
+             => detection 은 시간 얼마 안걸림(약 몇초)
+             => AI 모델은 영상을 동시에 처리하지 않고 하나씩 순차적으로 처리한다.
+             => 매칭된 정보는 나중에 모든 영상에 대해 KeyPoint, Tracking 처리를 다하고 사용되어도 상관없음
+
+
+            **/
+
+          })
+
+        })
+        .on('error', err => {
+          console.log(err)
+        }).pipe(fs.createWriteStream('highestVideo.mp4')
+)
+
     return res.send(response(baseResponse.SUCCESS("완료되었습니다.")));
+
+
   } catch (err) {
     logger.warn("응답 실패" + err);
     return res.send(errResponse(baseResponse.FAIL));
