@@ -12,6 +12,8 @@ const multer = require("multer");
 const { spawn } = require("child_process");
 const axios = require('axios');
 const uuid = require('uuid');
+const Path = require('../../userLog/path')
+
 
 let flag = false
 
@@ -19,8 +21,9 @@ exports.accessMainPage = async function(req,res){
 
   /** 사용자 최초 접속시 uuid 부여 **/
   const userUUID = uuid.v4();
-  let path = `C:\\Users\\jknad\\WebstormProjects\\Web-Server\\userLog\\${userUUID}`
+  let path = `${Path}\\${userUUID}`
   console.log("사용자 접속 :" + userUUID);
+
 
   /** 해당 uuid를 cookie에 저장 **/
   res.cookie('uuid',userUUID);
@@ -39,13 +42,14 @@ exports.youtubeVideo = async function (req, res) {
 
   const url = req.body.url;
 
+
   /** 부여된 uuid를 쿠키에서 가져옴 **/
   const userUUID = req.cookies.uuid;
   console.log(userUUID);
 
 
   /** 영상 파일의 최종 위치, 해당 위치를 인자로 넘겨주어 접근하면 됨 **/
-  const path = `C:\\Users\\jknad\\WebstormProjects\\Web-Server\\userLog\\${userUUID}\\${userUUID}`+'youtube.mp4'
+  let path = `${Path}\\${userUUID}\\${userUUID}`+'youtube.mp4'
 
   try {
 
@@ -66,7 +70,13 @@ exports.youtubeVideo = async function (req, res) {
     /** {quality Option = 'highestvideo' or 'lowestvideo' } **/
 
     ytdl(url, { quality: 'highestvideo' })
+        .on('data',async ()=>{
+            setInterval(()=>{
+                console.log("loading")
+            },1000)
+        })
         .on('end', async () => {
+
           console.log('end')
           flag = true;
           /** == 비동기로 비디오를 AI서버로 보낸다면, 여기 API는 res.send로 이미 return 한 상황 ==
@@ -139,3 +149,4 @@ exports.receiveUserVideo = async (req, res) => {
         return res.send(errResponse(baseResponse.FAIL));
     }
 }
+
