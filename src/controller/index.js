@@ -110,142 +110,32 @@ exports.youtubeVideo = async function (req, res) {
   }
 };
 
-// exports.sendVideo = async (req, res) => {
-//   const videoBuffer = fs.readFileSync("C:/Users/user/Desktop/tiktok.mp4");
+exports.receiveUserVideo = async (req, res) => {
+    try {
 
-//   console.log(videoBuffer);
+        const mp4Path = `uploads/${Date.now()}.mp4`;
+        const tempPath =
+            "C:/Users/user/Desktop/Programming/Last Dance/Web-Server/uploads/1674012392009.mp4";
 
-//   // request 옵션 세팅
-//   // const options = {
-//   //   url: "http://127.0.0.1:5000/estimate-poses",
-//   //   method: "POST",
-//   //   headers: {
-//   //     "Content-Type": "multipart/form-data",
-//   //   },
-//   //   formData: {
-//   //     video: {
-//   //       value: videoBuffer,
-//   //       options: {
-//   //         filename: "tiktok.mp4",
-//   //         contentType: "video/mp4",
-//   //       },
-//   //     },
-//   //   },
-//   // };
+        axios
+            .post(
+                "http://127.0.0.1:5000/detection",
+                {
+                    videoPath: tempPath,
+                },
+                {
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                }
+            )
+            .then((res) => {
+                console.log(res.data);
+            });
 
-//   // request(options, (error, respons, body) => {
-//   //   if (error) {
-//   //     console.log(error);
-//   //   } else {
-//   //     console.log(respons.statusCode, body);
-//   //   }
-//   // });
-
-//   request.post(
-//     {
-//       url: "http://127.0.0.1:5000/estimate-poses",
-//       body: videoBuffer,
-//       headers: {
-//         "Content-Type": "video/mp4",
-//       },
-//     },
-//     (error, response_2, body) => {
-//       if (error) {
-//         console.error(error);
-//       } else {
-//         console.log(body);
-//         return res.status(200).send(body);
-//       }
-//     }
-//   );
-// };
-
-// exports.sendVideo2 = async (req, res) => {
-//   // 1. 사용자로부터 파일을 업로드 받는다.
-//   // 2. 서버 컴퓨터 어딘가 저장소에 해당 비디오 파일을 저장 -> 경로
-//   // 3. Flask 서버로 request 요청(parameter: '경로')
-//   // 3-1. response -> body: {1: 80, 2: 92, ...}
-//   //4. body값 그대로 res.status(200).send(body)
-
-//   console.log(req);
-//   // 1. 사용자로부터 파일을 업로드 받는다.
-//   const video = req.file;
-//   const targetPath = path.join(__dirname, "save/video");
-//   console.log(video);
-//   video.mv(targetPath, (err) => {
-//     if (err) {
-//       return res.status(500).send(err);
-//     }
-
-//     res.json({ file: `${video.name}` });
-//   });
-// };
-
-// exports.upload = (req, res) => {
-//   try {
-//     const webmPath = req.file?.path;
-//     const mp4Path = `uploads/${Date.now()}.mp4`;
-
-//     const ffmpeg = spawn("ffmpeg", ["-i", webmPath, mp4Path]);
-
-//     ffmpeg.stdout.on("data", (data) => {
-//       console.log(`stdout: ${data}`);
-//     });
-//     ffmpeg.stderr.on("data", (data) => {
-//       console.error(`stderr: ${data}`);
-//     });
-//     ffmpeg.on("close", (code) => {
-//       console.log(`child process exited with code ${code}`);
-//     });
-
-//     res.status(200).send("Video successfully uploaded");
-//   } catch (err) {
-//     console.error(err);
-//     res.status(500).send(err);
-//   }
-// };
-
-// exports.upload2 = (req, res) => {
-//   const storage = multer.diskStorage({
-//     destination: (req, file, cb) => {
-//       cb(null, "uploads/");
-//     },
-//     filename: (req, file, cb) => {
-//       cb(null, `${Date.now()}_${file.originalname}`);
-//     },
-//   });
-
-//   const upload = multer({ storage }).single("video");
-
-//   try {
-//     upload(req, res, (err) => {
-//       if (err) {
-//         return res.json({ success: false, err });
-//       }
-//       return res.json({
-//         success: true,
-//         url: res.req.file.path,
-//         fileName: res.req.file.filename,
-//       });
-//     });
-//     const webmPath = req.file?.path;
-//     const mp4Path = `uploads/${Date.now()}.mp4`;
-
-//     const ffmpeg = spawn("ffmpeg", ["-i", webmPath, mp4Path]);
-
-//     ffmpeg.stdout.on("data", (data) => {
-//       console.log(`stdout: ${data}`);
-//     });
-//     ffmpeg.stderr.on("data", (data) => {
-//       console.error(`stderr: ${data}`);
-//     });
-//     ffmpeg.on("close", (code) => {
-//       console.log(`child process exited with code ${code}`);
-//     });
-
-//     res.status(200).send("Video successfully uploaded");
-//   } catch (err) {
-//     console.error(err);
-//     res.status(500).send(err);
-//   }
-// };
+        return res.send(response(baseResponse.SUCCESS("완료되었습니다.")));
+    } catch (err) {
+        logger.warn("응답 실패" + err);
+        return res.send(errResponse(baseResponse.FAIL));
+    }
+}
