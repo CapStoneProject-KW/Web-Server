@@ -42,7 +42,6 @@ exports.youtubeVideo = async function (req, res) {
 
   const url = req.body.url;
 
-
   /** 부여된 uuid를 쿠키에서 가져옴 **/
   const userUUID = req.cookies.uuid;
   console.log(userUUID);
@@ -70,11 +69,6 @@ exports.youtubeVideo = async function (req, res) {
     /** {quality Option = 'highestvideo' or 'lowestvideo' } **/
 
     ytdl(url, { quality: 'highestvideo' })
-        .on('data',async ()=>{
-            setInterval(()=>{
-                console.log("loading")
-            },1000)
-        })
         .on('end', async () => {
 
           console.log('end')
