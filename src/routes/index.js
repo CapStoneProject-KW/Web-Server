@@ -14,4 +14,6 @@ router.post("/index/video", index.youtubeVideo);
 
 router.post("/index/upload", upload.single("video"), index.receiveUserVideo)
 
+router.post("/index/matching-data",index.transferMatchingData);
+
 module.exports = router;

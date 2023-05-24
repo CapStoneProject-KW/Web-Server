@@ -14,6 +14,7 @@ const axios = require('axios');
 const uuid = require('uuid');
 const Path = require('../../userLog/path')
 
+// https://www.youtube.com/watch?v=PWXFsmkwuas
 
 let flag = false
 
@@ -21,8 +22,10 @@ exports.accessMainPage = async function(req,res){
 
   /** 사용자 최초 접속시 uuid 부여 **/
   const userUUID = uuid.v4();
-  let path = `${Path}\\${userUUID}`
+  // TODO : 맥북에서는 Path 설정 시 '/' 해도 되는데, 윈도우 환경이나 다른 환경에는 '\\' 해야하는 걸로 알고 있는데.....
+  let path = `${Path}/${userUUID}`
   console.log("사용자 접속 :" + userUUID);
+  console.log(path)
 
 
   /** 해당 uuid를 cookie에 저장 **/
@@ -41,6 +44,7 @@ exports.accessMainPage = async function(req,res){
 exports.youtubeVideo = async function (req, res) {
 
   const url = req.body.url;
+  console.log(url);
 
 
   /** 부여된 uuid를 쿠키에서 가져옴 **/
@@ -49,7 +53,9 @@ exports.youtubeVideo = async function (req, res) {
 
 
   /** 영상 파일의 최종 위치, 해당 위치를 인자로 넘겨주어 접근하면 됨 **/
-  let path = `${Path}\\${userUUID}\\${userUUID}`+'youtube.mp4'
+  /**  **/
+  let path = `${Path}/${userUUID}/${userUUID}`+'youtube.mp4';
+  console.log(path);
 
   try {
 
@@ -70,11 +76,6 @@ exports.youtubeVideo = async function (req, res) {
     /** {quality Option = 'highestvideo' or 'lowestvideo' } **/
 
     ytdl(url, { quality: 'highestvideo' })
-        .on('data',async ()=>{
-            setInterval(()=>{
-                console.log("loading")
-            },1000)
-        })
         .on('end', async () => {
 
           console.log('end')
@@ -86,31 +87,29 @@ exports.youtubeVideo = async function (req, res) {
            * **/
 
           /** AI모델에 영상파일 경로 전달 후 처리 => 그동안 서버는 응답을 위해 대기 **/
-              // AI 서버 API : http://127.0.0.1:8000/ai/video
-          let aiReturnResponse = await axios.post("http://127.0.0.1:8000/ai/video",{
-                path : path
+          let aiReturnResponse = await axios.post("http://127.0.0.1:5000/detect_video",{
+                    "user_or_answer": "answer",
+                    "mode": "detection",
+                    "data_path": path,
+                    "ckpt_path": "./pretrained/yolov7.pt"
               }).then((result)=>{
-                return result.data.message
+
+                console.log(res.data);
+
+                axios.post("http://127.0.0.1:5000/tracking",{
+                    "user_or_answer": "answer",
+                    "mode": "tracking",
+                    "data_path": path,
+                    "ckpt_path": "./pretrained/yolov7.pt"
+                }).then(result =>{
+                    console.log("원본 영상 Tracking 완료")
+                })
+
               })
-
-
-          /**                       --- 내용 ---
-           Q) 영상 동시 Detection 혹은 먼저 오는 순서대로 ?
-           동시 => 그냥 비동기로 영상 받고 끝 (어차피 영상 녹화되는 시간 안에 다운받아짐 아마)
-           각각 => 응답 결과를 어디에 저장했다가 녹화까지 끝나고 한꺼번에 다른 API로 전송
-
-           => detection 은 시간 얼마 안걸림(약 몇초)
-           => AI 모델은 영상을 동시에 처리하지 않고 하나씩 순차적으로 처리한다.
-           => 매칭된 정보는 나중에 모든 영상에 대해 KeyPoint, Tracking 처리를 다하고 사용되어도 상관없음
-
-
-           **/
-
         })
         .on('error', err => {
           console.log(err)
         }).pipe(fs.createWriteStream(path))
-
 
     return res.send(response(baseResponse.SUCCESS("완료되었습니다.")));
 
@@ -122,16 +121,29 @@ exports.youtubeVideo = async function (req, res) {
 
 exports.receiveUserVideo = async (req, res) => {
     try {
-
-        const mp4Path = `uploads/${Date.now()}.mp4`;
-        const tempPath =
-            "C:/Users/user/Desktop/Programming/Last Dance/Web-Server/uploads/1674012392009.mp4";
-
+        /*//
+        // const mp4Path = `uploads/${Date.now()}.mp4`;
+        // const tempPath =
+        //     "C:/Users/user/Desktop/Programming/Last Dance/Web-Server/uploads/1674012392009.mp4";
+*/
+        const userUUID = req.cookies.uuid;
+        const path = `${Path}/${userUUID}/${userUUID}userVideo.mp4`;
+        console.log(path);
+        /*videoPath: {
+            "user_or_answer": "user",
+                "mode": "detection",
+                "data_path": path,
+                "ckpt_path": "./pretrained/yolov7.pt"
+        }*/
         axios
             .post(
-                "http://127.0.0.1:5000/detection",
+                "http://127.0.0.1:5000/detect_video",
                 {
-                    videoPath: tempPath,
+                        "user_or_answer": "user",
+                        "mode": "tracking",
+                        "data_path": path,
+                        "ckpt_path": "./pretrained/yolov7.pt"
+
                 },
                 {
                     headers: {
@@ -141,6 +153,18 @@ exports.receiveUserVideo = async (req, res) => {
             )
             .then((res) => {
                 console.log(res.data);
+
+                axios.post("http://127.0.0.1:5000/tracking",{
+                    "user_or_answer": "user",
+                    "mode": "tracking",
+                    "data_path": path,
+                    "ckpt_path": "./pretrained/yolov7.pt"
+                }).then(result =>{
+                    console.log(result);
+                    console.log("사용자 영상 Tracking 완료")
+                })
+
+
             });
 
         return res.send(response(baseResponse.SUCCESS("완료되었습니다.")));
@@ -148,5 +172,32 @@ exports.receiveUserVideo = async (req, res) => {
         logger.warn("응답 실패" + err);
         return res.send(errResponse(baseResponse.FAIL));
     }
+}
+
+exports.transferMatchingData = async function(req,res){
+
+    const userUUID = req.cookies.uuid;
+    const data = req.body;
+
+    console.log(req.body);
+
+    const path = `${Path}/${userUUID}/`;
+
+    let user_kpt_path = path + "user_kpt_result.json";
+    let answer_kpt_path = path + "answer_kpt_result.json";
+    let user_mot_path = path + "user_mot_result.json";
+    let answer_mot_path = path + "answer_mot_result.json";
+
+
+    await axios.post("http://127.0.0.1:5000/scoring",{
+        "user_kpt_result" : user_kpt_path,
+        "answer_kpt_result" : answer_kpt_path,
+        "user_mot_result" : user_mot_path,
+        "answer_mot_result" : answer_mot_path,
+        "matchingData" : data
+    }).then(result => {
+        console.log(result);
+    })
+
 }
 

@@ -3,10 +3,12 @@ const multer = require("multer");
 
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, "uploads/");
+        const userUUID = req.cookies.uuid;
+        cb(null, `userLog/${userUUID}/`);
     },
     filename: (req, file, cb) => {
-        cb(null, `${Date.now()}_${file.originalname}`);
+        const userUUID = req.cookies.uuid;
+        cb(null, `${userUUID}userVideo.mp4`);
     },
 });
 const upload = multer({ storage });

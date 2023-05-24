@@ -17,7 +17,10 @@ app.use(express.urlencoded({ extended: false }));
 
 app.use(cookieParser());
 
-app.use(cors());
+app.use(cors({
+    origin: true,
+    credentials: true
+}));
 
 // TODO : URL 추가시 해당 아래에 route 추가!
 
